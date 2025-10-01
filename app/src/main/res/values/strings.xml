@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ForwardSMS</string>
+
+    <!-- Main Screen -->
+    <string name="filter_title">ForwardSMS 필터</string>
+    <string name="add_filter">필터 추가</string>
+    <string name="no_filters">등록된 필터가 없습니다</string>
+    <string name="add_filter_hint">+ 버튼을 눌러 필터를 추가하세요</string>
+
+    <!-- Add Filter Screen -->
+    <string name="add_filter_title">필터 추가</string>
+    <string name="edit_filter_title">필터 수정</string>
+    <string name="back">뒤로가기</string>
+    <string name="keyword">키워드</string>
+    <string name="keyword_hint">예: 인증번호</string>
+    <string name="keyword_description">SMS 본문에서 찾을 키워드를 입력하세요</string>
+    <string name="url">URL</string>
+    <string name="url_hint">https://example.com/webhook?msg=${message}&amp;from=${sender}</string>
+    <string name="url_description">메시지를 전송할 URL을 입력하세요.\n템플릿: ${message}, ${sender}, ${timestamp}</string>
+    <string name="http_method">HTTP 메서드</string>
+    <string name="save">저장</string>
+    <string name="delete">삭제</string>
+
+    <!-- Validation Messages -->
+    <string name="error_empty_fields">모든 필드를 입력해주세요</string>
+    <string name="error_invalid_url">올바른 URL 형식을 입력해주세요 (http:// 또는 https://)</string>
+    <string name="error_invalid_method">메서드는 GET 또는 POST만 가능합니다</string>
+
+    <!-- Error Messages -->
+    <string name="error_add_filter">필터 추가 중 오류가 발생했습니다: %1$s</string>
+    <string name="error_update_filter">필터 업데이트 중 오류가 발생했습니다: %1$s</string>
+    <string name="error_delete_filter">필터 삭제 중 오류가 발생했습니다: %1$s</string>
+    <string name="error_network">네트워크 오류가 발생했습니다</string>
+    <string name="error_database">데이터베이스 오류가 발생했습니다</string>
+
+    <!-- Permissions -->
+    <string name="permission_granted">권한이 허용되었습니다</string>
+    <string name="permission_required">SMS 수신 권한이 필요합니다. 설정에서 권한을 허용해주세요.</string>
+
+    <!-- Notifications -->
+    <string name="webhook_success">웹훅 호출 성공</string>
+    <string name="webhook_failed">웹훅 호출 실패</string>
+    <string name="message_forwarded">메시지가 성공적으로 전송되었습니다</string>
+    <string name="message_forward_failed">메시지 전송에 실패했습니다</string>
+
+    <!-- Filter States -->
+    <string name="filter_enabled">활성화됨</string>
+    <string name="filter_disabled">비활성화됨</string>
+    <string name="toggle_filter">필터 토글</string>
+
+    <!-- Content Descriptions -->
+    <string name="edit_filter">필터 수정</string>
+    <string name="delete_filter">필터 삭제</string>
+</resources>

@@ -16,9 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.odinu.forwardsms.utils.AppSettings
 import com.odinu.forwardsms.utils.SystemStateManager
@@ -38,6 +41,20 @@ fun SystemOptimizationScreen(
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(2000) // 2초마다 업데이트
         diagnosis = systemStateManager.getSystemDiagnosis()
+    }
+
+    // 배터리 최적화 설정 등 시스템 설정 화면에 다녀온 뒤(화면 재진입 시) 최신 상태 반영
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                diagnosis = systemStateManager.getSystemDiagnosis()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     Scaffold(
@@ -92,8 +109,15 @@ fun SystemOptimizationScreen(
                                 }
                             } catch (e: Exception) {
                                 // Fallback to general battery settings
-                                val intent = systemStateManager.openBatteryOptimizationSettings()
-                                context.startActivity(intent)
+                                try {
+                                    context.startActivity(systemStateManager.openBatteryOptimizationSettings())
+                                } catch (e: Exception) {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "배터리 설정 화면을 열 수 없습니다. 설정 > 배터리 항목에서 직접 확인해주세요.",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                }
                             }
                         }
                     )

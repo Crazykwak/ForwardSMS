@@ -4,7 +4,10 @@ import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.provider.Telephony
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.odinu.forwardsms.MainActivity
@@ -43,6 +46,7 @@ class MessageProcessingService : Service() {
     private lateinit var memoryManager: MemoryManager
     private lateinit var systemStateManager: SystemStateManager
     private lateinit var offlineQueueService: OfflineQueueService
+    private var mmsContentObserver: MmsContentObserver? = null
 
     private val serviceScope = CoroutineScope(
         Dispatchers.IO + SupervisorJob() +
@@ -61,6 +65,12 @@ class MessageProcessingService : Service() {
         offlineQueueService = OfflineQueueService.getInstance(this)
 
         createNotificationChannel()
+
+        // WAP_PUSH_RECEIVED에는 MMS 본문이 없으므로, 다운로드 완료 후 저장되는
+        // content://mms 를 감시해 실제 본문을 읽어온다
+        mmsContentObserver = MmsContentObserver(this, Handler(Looper.getMainLooper()), serviceScope).also {
+            contentResolver.registerContentObserver(Telephony.Mms.CONTENT_URI, true, it)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -252,6 +262,8 @@ class MessageProcessingService : Service() {
         isServiceRunning = false
         statsUpdateJob?.cancel()
         serviceScope.cancel()
+
+        mmsContentObserver?.let { contentResolver.unregisterContentObserver(it) }
 
         // 서비스들 정리
         messageProcessor.cleanup()

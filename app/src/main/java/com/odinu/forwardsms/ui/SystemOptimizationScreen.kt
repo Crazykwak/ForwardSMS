@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.odinu.forwardsms.utils.AppSettings
 import com.odinu.forwardsms.utils.SystemStateManager
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,7 +30,9 @@ fun SystemOptimizationScreen(
 ) {
     val context = LocalContext.current
     val systemStateManager = remember { SystemStateManager(context) }
+    val appSettings = remember { AppSettings.getInstance(context) }
     var diagnosis by remember { mutableStateOf(systemStateManager.getSystemDiagnosis()) }
+    var notificationMonitoringEnabled by remember { mutableStateOf(appSettings.isNotificationMonitoringEnabled) }
 
     // 주기적으로 시스템 상태 업데이트
     LaunchedEffect(Unit) {
@@ -114,6 +117,17 @@ fun SystemOptimizationScreen(
                         }
                     )
                 }
+            }
+
+            // 알림 기반 메시지 감지 (RCS) on/off
+            item {
+                NotificationMonitoringCard(
+                    enabled = notificationMonitoringEnabled,
+                    onToggle = { enabled ->
+                        notificationMonitoringEnabled = enabled
+                        appSettings.isNotificationMonitoringEnabled = enabled
+                    }
+                )
             }
 
             // 추가 권한 가이드
@@ -329,6 +343,55 @@ private fun AutoStartCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("자동 시작 설정 열기")
             }
+        }
+    }
+}
+
+@Composable
+private fun NotificationMonitoringCard(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "알림 기반 메시지 감지 (RCS)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "RCS 메시지는 알림을 읽어서 감지합니다. 기기/앱에 따라 긴 메시지(LMS)의 알림 미리보기가 잘려 전체 내용이 전달되지 않을 수 있습니다. " +
+                        "끄면 RCS 메시지는 감지되지 않지만, SMS/LMS는 항상 전체 내용으로 정확하게 감지됩니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Switch(
+                checked = enabled,
+                onCheckedChange = onToggle
+            )
         }
     }
 }

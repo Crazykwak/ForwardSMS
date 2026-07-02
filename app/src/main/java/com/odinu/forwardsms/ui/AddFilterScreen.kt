@@ -1,8 +1,10 @@
 package com.odinu.forwardsms.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
@@ -27,10 +29,13 @@ fun AddFilterScreen(
     onNavigateBack: () -> Unit
 ) {
     var keyword by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+    var filterType by remember { mutableStateOf("KEYWORD") }
     var url by remember { mutableStateOf("") }
     var method by remember { mutableStateOf("POST") }
     var showTemplateHelp by remember { mutableStateOf(false) }
     var keywordError by remember { mutableStateOf<String?>(null) }
+    var phoneNumberError by remember { mutableStateOf<String?>(null) }
     var urlError by remember { mutableStateOf<String?>(null) }
 
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -152,6 +157,7 @@ fun AddFilterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -167,21 +173,85 @@ fun AddFilterScreen(
                 }
             }
 
-            OutlinedTextField(
-                value = keyword,
-                onValueChange = {
-                    keyword = it
-                    keywordError = if (it.isBlank()) "키워드를 입력해주세요" else null
-                },
-                label = { Text("키워드") },
-                placeholder = { Text("예: 인증번호") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading,
-                isError = keywordError != null,
-                supportingText = {
-                    Text(keywordError ?: "SMS 본문에서 찾을 키워드를 입력하세요")
+            // Filter Type Selection
+            Column {
+                Text(
+                    text = "필터 타입",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(Modifier.selectableGroup()) {
+                    val filterTypes = listOf(
+                        "KEYWORD" to "키워드 필터",
+                        "PHONE_NUMBER" to "전화번호 필터",
+                        "BOTH" to "키워드 + 전화번호"
+                    )
+                    filterTypes.forEach { (value, label) ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .selectable(
+                                    selected = (value == filterType),
+                                    onClick = { filterType = value },
+                                    role = Role.RadioButton
+                                )
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = (value == filterType),
+                                onClick = null,
+                                enabled = !isLoading
+                            )
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+                    }
                 }
-            )
+            }
+
+            // Keyword input - show based on filter type
+            if (filterType == "KEYWORD" || filterType == "BOTH") {
+                OutlinedTextField(
+                    value = keyword,
+                    onValueChange = {
+                        keyword = it
+                        keywordError = if (it.isBlank()) "키워드를 입력해주세요" else null
+                    },
+                    label = { Text("키워드") },
+                    placeholder = { Text("예: 인증번호") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading,
+                    isError = keywordError != null,
+                    supportingText = {
+                        Text(keywordError ?: "SMS 본문에서 찾을 키워드를 입력하세요")
+                    }
+                )
+            }
+
+            // Phone number input - show based on filter type
+            if (filterType == "PHONE_NUMBER" || filterType == "BOTH") {
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = {
+                        phoneNumber = it
+                        phoneNumberError = if (it.isBlank()) "전화번호를 입력해주세요" else null
+                    },
+                    label = { Text("전화번호") },
+                    placeholder = { Text("예: 01012345678") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading,
+                    isError = phoneNumberError != null,
+                    supportingText = {
+                        Text(phoneNumberError ?: "필터링할 발신자 전화번호를 입력하세요")
+                    }
+                )
+            }
 
             // URL 입력 섹션
             Card(
@@ -316,13 +386,13 @@ fun AddFilterScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
             Button(
                 onClick = {
                     // Validate before submitting
                     val tempFilter = Filter(
                         keyword = keyword.trim(),
+                        phoneNumber = phoneNumber.trim(),
+                        filterType = filterType,
                         url = url.trim(),
                         method = method
                     )
@@ -330,18 +400,25 @@ fun AddFilterScreen(
                     val errors = tempFilter.getValidationErrors()
                     if (errors.isNotEmpty()) {
                         keywordError = errors.find { it.contains("키워드") }
+                        phoneNumberError = errors.find { it.contains("전화번호") }
                         urlError = errors.find { it.contains("URL") || it.contains("유효") || it.contains("HTTP") || it.contains("안전") }
                         return@Button
                     }
 
                     viewModel.clearErrorMessage()
-                    viewModel.addFilter(keyword.trim(), tempFilter.getNormalizedUrl(), method)
+                    viewModel.addFilter(
+                        keyword = keyword.trim(),
+                        url = tempFilter.getNormalizedUrl(),
+                        method = method,
+                        filterType = filterType,
+                        phoneNumber = phoneNumber.trim()
+                    )
                     if (viewModel.errorMessage.value == null) {
                         onNavigateBack()
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading && keyword.isNotBlank() && url.isNotBlank() && keywordError == null && urlError == null
+                enabled = !isLoading && url.isNotBlank() && keywordError == null && phoneNumberError == null && urlError == null
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(

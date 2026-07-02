@@ -2,6 +2,7 @@ package com.odinu.forwardsms
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import com.odinu.forwardsms.utils.AppSettings
 import com.odinu.forwardsms.utils.LogCollector
 import com.odinu.forwardsms.utils.SecureLogger
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +31,10 @@ class MessageNotificationListener : NotificationListenerService() {
             return
         }
 
+        if (!AppSettings.getInstance(this).isNotificationMonitoringEnabled) {
+            return
+        }
+
         try {
             val notification = sbn
             val packageName = notification.packageName
@@ -37,8 +42,14 @@ class MessageNotificationListener : NotificationListenerService() {
 
             // 모든 알림을 로깅해서 LGU+ RCS 패키지명 찾기
             val title = extras?.getString("android.title")
-            val text = extras?.getString("android.text")
-                ?: extras?.getString("android.bigText")
+            // BigTextStyle의 android.bigText가 전체 본문이고, android.text는 축약된 미리보기이므로
+            // 긴 메시지(LMS)가 잘리지 않도록 bigText를 우선 사용
+            val text = extras?.getString("android.bigText")
+                ?: extras?.getString("android.text")
+
+            if (packageName.contains("com.odinu.forwardsms")) {
+                return;
+            }
 
             LogCollector.i("NotificationRCS", "메시지 관련 알림 감지: $packageName")
 

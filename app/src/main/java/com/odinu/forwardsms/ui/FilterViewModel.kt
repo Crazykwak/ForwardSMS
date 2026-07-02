@@ -23,9 +23,17 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    fun addFilter(keyword: String, url: String, method: String) {
+    fun addFilter(
+        keyword: String,
+        url: String,
+        method: String,
+        filterType: String = "KEYWORD",
+        phoneNumber: String = ""
+    ) {
         val context = getApplication<Application>().applicationContext
-        val validationError = ErrorHandler.validateFilter(context, keyword, url, method)
+        val validationError = ErrorHandler.validateFilter(
+            context, keyword, url, method, filterType, phoneNumber
+        )
         if (validationError != null) {
             _errorMessage.value = validationError
             return
@@ -37,6 +45,8 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
                 repository.insertFilter(
                     Filter(
                         keyword = keyword.trim(),
+                        phoneNumber = phoneNumber.trim(),
+                        filterType = filterType.uppercase().trim(),
                         url = url.trim(),
                         method = method.uppercase().trim()
                     )
@@ -63,7 +73,9 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
 
     fun updateFilter(filter: Filter) {
         val context = getApplication<Application>().applicationContext
-        val validationError = ErrorHandler.validateFilter(context, filter.keyword, filter.url, filter.method)
+        val validationError = ErrorHandler.validateFilter(
+            context, filter.keyword, filter.url, filter.method, filter.filterType, filter.phoneNumber
+        )
         if (validationError != null) {
             _errorMessage.value = validationError
             return

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -58,6 +59,13 @@ fun FilterListScreen(
                         Icon(
                             Icons.Default.Info,
                             contentDescription = "디버그 로그",
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                    IconButton(onClick = onViewSystemOptimization) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "시스템 최적화",
                             tint = MaterialTheme.colorScheme.secondary
                         )
                     }
@@ -203,28 +211,82 @@ fun FilterCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    // 상태 인디케이터
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .background(
-                                if (filter.enabled)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.outline,
-                                shape = androidx.compose.foundation.shape.CircleShape
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 상태 인디케이터
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(
+                                    if (filter.enabled)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.outline,
+                                    shape = androidx.compose.foundation.shape.CircleShape
+                                )
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // 필터 타입 태그
+                        AssistChip(
+                            onClick = { },
+                            label = {
+                                Text(
+                                    when (filter.filterType.uppercase()) {
+                                        "KEYWORD" -> "키워드"
+                                        "PHONE_NUMBER" -> "전화번호"
+                                        "BOTH" -> "키워드+번호"
+                                        else -> "키워드"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = when (filter.filterType.uppercase()) {
+                                    "KEYWORD" -> MaterialTheme.colorScheme.primaryContainer
+                                    "PHONE_NUMBER" -> MaterialTheme.colorScheme.secondaryContainer
+                                    "BOTH" -> MaterialTheme.colorScheme.tertiaryContainer
+                                    else -> MaterialTheme.colorScheme.surfaceVariant
+                                }
+                            ),
+                            modifier = Modifier.height(24.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Display filter value based on type
+                    when (filter.filterType.uppercase()) {
+                        "KEYWORD" -> {
+                            Text(
+                                text = filter.keyword,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = filter.keyword,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                        }
+                        "PHONE_NUMBER" -> {
+                            Text(
+                                text = filter.phoneNumber,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        "BOTH" -> {
+                            Text(
+                                text = "${filter.keyword} / ${filter.phoneNumber}",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 }
 
                 Switch(

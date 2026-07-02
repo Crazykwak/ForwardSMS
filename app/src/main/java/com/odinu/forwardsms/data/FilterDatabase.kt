@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Filter::class, FilterHistory::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class FilterDatabase : RoomDatabase() {
@@ -39,13 +39,25 @@ abstract class FilterDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add phoneNumber and filterType columns to filters table
+                database.execSQL("""
+                    ALTER TABLE `filters` ADD COLUMN `phoneNumber` TEXT NOT NULL DEFAULT ''
+                """.trimIndent())
+                database.execSQL("""
+                    ALTER TABLE `filters` ADD COLUMN `filterType` TEXT NOT NULL DEFAULT 'KEYWORD'
+                """.trimIndent())
+            }
+        }
+
         fun getDatabase(context: Context): FilterDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     FilterDatabase::class.java,
                     "filter_database"
-                ).addMigrations(MIGRATION_1_2).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
                 INSTANCE = instance
                 instance
             }

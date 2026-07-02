@@ -49,17 +49,15 @@ class MessageProcessor private constructor(private val context: Context) {
     suspend fun processMessage(messageBody: String, sender: String?, timestamp: Long) {
         Log.d("MessageProcessor", "processMessage 호출: message='$messageBody', sender='$sender'")
 
-        // 메시지 중복 확인
+        // 메시지 중복 확인 (발신자 포함 해시, 확인과 기록을 원자적으로 수행)
         val messageHash = generateMessageHash(messageBody, sender)
         val currentTime = System.currentTimeMillis()
 
-        if (isDuplicateMessage(messageHash, currentTime)) {
+        if (isDuplicateAndRecord(messageHash, currentTime)) {
             Log.d("MessageProcessor", "중복 메시지 감지됨, 무시함: hash=$messageHash")
             return
         }
 
-        // 중복이 아닌 경우 캐시에 추가
-        recentMessageHashes[messageHash] = currentTime
         cleanupOldHashes(currentTime)
 
         val task = MessageTask(messageBody, sender, timestamp)
@@ -76,8 +74,8 @@ class MessageProcessor private constructor(private val context: Context) {
     /**
      * 빠른 매칭 확인 (UI 블로킹 방지)
      */
-    fun hasAnyFilterMatch(messageBody: String): Boolean {
-        return filterMatcher.hasAnyMatch(messageBody)
+    fun hasAnyFilterMatch(messageBody: String, sender: String? = null): Boolean {
+        return filterMatcher.hasAnyMatch(messageBody, sender)
     }
 
     /**
@@ -105,7 +103,7 @@ class MessageProcessor private constructor(private val context: Context) {
     private suspend fun processMessageTask(task: MessageTask) {
         try {
             Log.d("MessageProcessor", "processMessageTask 시작: ${task.messageBody}")
-            val matchedFilters = filterMatcher.findMatchingFilters(task.messageBody)
+            val matchedFilters = filterMatcher.findMatchingFilters(task.messageBody, task.sender)
             Log.d("MessageProcessor", "매칭된 필터 수: ${matchedFilters.size}")
 
             if (matchedFilters.isEmpty()) {
@@ -275,17 +273,29 @@ class MessageProcessor private constructor(private val context: Context) {
      * 메시지 해시 생성 (메시지 본문 기반)
      */
     private fun generateMessageHash(messageBody: String, sender: String?): String {
-        // 메시지 내용 정규화 (공백, 줄바꿈 제거)
+        // 메시지 내용 정규화 (공백, 줄바꿈 제거) + 발신자를 포함해 동일 내용이라도
+        // 발신자가 다르면 별개 메시지로 취급한다
         val normalizedMessage = messageBody.replace(Regex("\\s+"), " ").trim()
-        return normalizedMessage.hashCode().toString()
+        val normalizedSender = sender?.trim().orEmpty()
+        return "$normalizedSender:$normalizedMessage".hashCode().toString()
     }
 
     /**
-     * 중복 메시지 확인
+     * 중복 메시지 확인과 기록을 하나의 원자적 연산으로 수행한다.
+     * ConcurrentHashMap.compute는 동일 키에 대해 락을 걸어 처리하므로,
+     * 동시에 같은 메시지가 들어와도 확인-기록 사이에 다른 스레드가 끼어들 수 없다.
      */
-    private fun isDuplicateMessage(messageHash: String, currentTime: Long): Boolean {
-        val lastSeenTime = recentMessageHashes[messageHash] ?: return false
-        return (currentTime - lastSeenTime) < DUPLICATE_WINDOW_MS
+    private fun isDuplicateAndRecord(messageHash: String, currentTime: Long): Boolean {
+        var duplicate = false
+        recentMessageHashes.compute(messageHash) { _, lastSeenTime ->
+            if (lastSeenTime != null && (currentTime - lastSeenTime) < DUPLICATE_WINDOW_MS) {
+                duplicate = true
+                lastSeenTime
+            } else {
+                currentTime
+            }
+        }
+        return duplicate
     }
 
     /**

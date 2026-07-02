@@ -29,8 +29,37 @@ object ErrorHandler {
         }
     }
 
-    fun validateFilter(context: Context, keyword: String, url: String, method: String): String? {
-        if (keyword.isBlank() || url.isBlank() || method.isBlank()) {
+    fun validateFilter(
+        context: Context,
+        keyword: String,
+        url: String,
+        method: String,
+        filterType: String = "KEYWORD",
+        phoneNumber: String = ""
+    ): String? {
+        // 필터 타입에 따른 검증
+        when (filterType.uppercase()) {
+            "KEYWORD" -> {
+                if (keyword.isBlank()) {
+                    return context.getString(R.string.error_empty_fields)
+                }
+            }
+            "PHONE_NUMBER" -> {
+                if (phoneNumber.isBlank()) {
+                    return "전화번호를 입력해주세요"
+                }
+            }
+            "BOTH" -> {
+                if (keyword.isBlank() || phoneNumber.isBlank()) {
+                    return "키워드와 전화번호를 모두 입력해주세요"
+                }
+            }
+            else -> {
+                return "올바른 필터 타입을 선택해주세요"
+            }
+        }
+
+        if (url.isBlank()) {
             return context.getString(R.string.error_empty_fields)
         }
 

@@ -62,8 +62,9 @@ class SystemStateManager(private val context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 val network = connectivityManager.activeNetwork ?: return false
                 val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                // NET_CAPABILITY_VALIDATED는 시스템의 자체 연결성 점검 URL 접근 성공 여부이며,
+                // 방화벽/사내망/캡티브 포털 등에서 그 점검만 실패해도 웹훅 호출 자체는 정상 동작할 수 있으므로 제외
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             } else {
                 @Suppress("DEPRECATION")
                 val networkInfo = connectivityManager.activeNetworkInfo
